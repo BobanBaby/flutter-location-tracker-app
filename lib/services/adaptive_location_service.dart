@@ -219,18 +219,19 @@ class AdaptiveLocationService {
       position.longitude,
     );
 
-    if (distanceMeters >= 12.0) {
+    // Capture point if moved at least 5 meters or if 10 seconds have elapsed
+    if (distanceMeters >= 5.0 || elapsedSeconds >= 10) {
       return true;
     }
 
     switch (activity) {
       case UserActivity.driving:
-        return elapsedSeconds >= 30 || distanceMeters >= 100;
+        return elapsedSeconds >= 15 || distanceMeters >= 20;
       case UserActivity.walking:
-        return elapsedSeconds >= 20 || distanceMeters >= 15;
+        return elapsedSeconds >= 10 || distanceMeters >= 5;
       case UserActivity.still:
       case UserActivity.unknown:
-        return elapsedSeconds >= 300;
+        return elapsedSeconds >= 30;
     }
   }
 

@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'adaptive_location_service.dart';
 import 'firebase_upload_service.dart';
 
 @pragma('vm:entry-point')
 void startCallback() {
+  WidgetsFlutterBinding.ensureInitialized();
   FlutterForegroundTask.setTaskHandler(MyForegroundTaskHandler());
 }
 
@@ -15,13 +17,21 @@ class MyForegroundTaskHandler extends TaskHandler {
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     print('Foreground Service Started at $timestamp');
 
-    // Start adaptive location tracking
-    await AdaptiveLocationService.instance.startTracking();
+    try {
+      WidgetsFlutterBinding.ensureInitialized();
+      await AdaptiveLocationService.instance.startTracking();
+    } catch (e, stack) {
+      print('Error starting background tracking: $e\n$stack');
+    }
 
     // Requirement 5: Every 5 minutes (300 seconds), upload pending GPS records
     _uploadTimer = Timer.periodic(const Duration(minutes: 5), (timer) async {
       print('5-Minute Periodic Upload Triggered');
-      await FirebaseUploadService.instance.processUploadQueue();
+      try {
+        await FirebaseUploadService.instance.processUploadQueue();
+      } catch (e) {
+        print('Error in periodic upload: $e');
+      }
     });
   }
 

@@ -21,7 +21,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -32,6 +32,10 @@ class DatabaseHelper {
       CREATE TABLE location_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         journey_id TEXT NOT NULL,
+        user_id TEXT NOT NULL DEFAULT '',
+        user_name TEXT NOT NULL DEFAULT '',
+        device_id TEXT NOT NULL DEFAULT '',
+        device_model TEXT NOT NULL DEFAULT '',
         timestamp TEXT NOT NULL,
         latitude REAL NOT NULL,
         longitude REAL NOT NULL,
@@ -92,6 +96,20 @@ class DatabaseHelper {
           description TEXT NOT NULL
         )
       ''');
+    }
+    if (oldVersion < 5) {
+      try {
+        await db.execute("ALTER TABLE location_logs ADD COLUMN user_id TEXT NOT NULL DEFAULT ''");
+      } catch (_) {}
+      try {
+        await db.execute("ALTER TABLE location_logs ADD COLUMN user_name TEXT NOT NULL DEFAULT ''");
+      } catch (_) {}
+      try {
+        await db.execute("ALTER TABLE location_logs ADD COLUMN device_id TEXT NOT NULL DEFAULT ''");
+      } catch (_) {}
+      try {
+        await db.execute("ALTER TABLE location_logs ADD COLUMN device_model TEXT NOT NULL DEFAULT ''");
+      } catch (_) {}
     }
   }
 
