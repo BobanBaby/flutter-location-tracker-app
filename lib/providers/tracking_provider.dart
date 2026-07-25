@@ -95,6 +95,11 @@ class TrackingProvider extends ChangeNotifier {
 
   /// Start Tracking a New Isolated Journey Session
   Future<bool> startTracking() async {
+    if (!UserDeviceService.instance.hasValidUserProfile) {
+      print('TrackingProvider Blocked: Verified Sales Rep Profile (Employee ID & Name) is required!');
+      return false;
+    }
+
     final newJourneyId = 'JRN_${DateTime.now().millisecondsSinceEpoch}';
     bool serviceStarted = await AdaptiveLocationService.instance.startTracking(newJourneyId);
     await ForegroundServiceManager.instance.startForegroundService();

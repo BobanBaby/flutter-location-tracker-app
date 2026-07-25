@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'user_device_service.dart';
 import '../models/gps_log.dart';
 import '../models/journey_model.dart';
 
@@ -115,6 +116,10 @@ class DatabaseHelper {
 
   /// Immediately save raw GPS log into SQLite
   Future<int> insertLog(GpsLog log) async {
+    if (log.userId.trim().isEmpty || !UserDeviceService.instance.hasValidUserProfile) {
+      print('DatabaseHelper Blocked: Cannot insert log without verified Sales Rep Profile!');
+      return -1;
+    }
     final db = await instance.database;
     return await db.insert('location_logs', log.toMap());
   }

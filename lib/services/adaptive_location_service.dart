@@ -70,6 +70,11 @@ class AdaptiveLocationService {
       return false;
     }
 
+    if (!UserDeviceService.instance.hasValidUserProfile) {
+      print('AdaptiveLocationService Blocked: Valid Sales Rep profile required before tracking can start!');
+      return false;
+    }
+
     _isTracking = true;
     _currentJourneyId = existingJourneyId ?? 'JRN_${DateTime.now().millisecondsSinceEpoch}';
     _lastCapturedTime = null;
@@ -166,6 +171,10 @@ class AdaptiveLocationService {
       lastPos: _lastCapturedPosition,
       lastTime: _lastCapturedTime,
     );
+
+    if (!UserDeviceService.instance.hasValidUserProfile) {
+      return;
+    }
 
     final now = DateTime.now();
 

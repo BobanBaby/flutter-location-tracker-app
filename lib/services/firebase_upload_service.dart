@@ -14,6 +14,12 @@ class FirebaseUploadService {
   /// Process the Pending Upload Queue with 2-Tier Hierarchical Firestore Structure
   Future<int> processUploadQueue() async {
     if (_isUploading) return 0;
+
+    if (!UserDeviceService.instance.hasValidUserProfile) {
+      print('FirebaseUploadService Blocked: Verified Sales Rep profile required before syncing to Cloud Firestore!');
+      return 0;
+    }
+
     _isUploading = true;
 
     int uploadedCount = 0;
@@ -65,13 +71,29 @@ class FirebaseUploadService {
             final WriteBatch batch = FirebaseFirestore.instance.batch();
 
             for (var log in batchLogs) {
-              final payload = log.copyWith(uploadStatus: 'Uploaded').toMap();
+              // Backfill empty profile fields for logs created before registration
+              final effectiveUserId = log.userId.trim().isNotEmpty
+                  ? log.userId
+                  : (profile.userId.trim().isNotEmpty ? profile.userId : 'EMP_101');
+              final effectiveUserName = log.userName.trim().isNotEmpty
+                  ? log.userName
+                  : (profile.userName.trim().isNotEmpty ? profile.userName : 'Sales Rep');
+
+              final updatedLog = log.copyWith(
+                userId: effectiveUserId,
+                userName: effectiveUserName,
+                deviceId: log.deviceId.trim().isNotEmpty ? log.deviceId : profile.deviceId,
+                deviceModel: log.deviceModel.trim().isNotEmpty ? log.deviceModel : profile.deviceModel,
+                uploadStatus: 'Uploaded',
+              );
+
+              final payload = updatedLog.toMap();
 
               // 1. Primary Hierarchical Path: /users/{userId}/journeys/{journeyId}/gps_logs/{docId}
               final jId = log.journeyId.isNotEmpty ? log.journeyId : 'JRN_DEFAULT';
               final subDocRef = FirebaseFirestore.instance
                   .collection('users')
-                  .doc(userId)
+                  .doc(effectiveUserId)
                   .collection('journeys')
                   .doc(jId)
                   .collection('gps_logs')
