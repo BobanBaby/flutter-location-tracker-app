@@ -208,8 +208,16 @@ class JourneyHistoryScreen extends StatelessWidget {
       children: [
         Icon(icon, color: color, size: 16),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: const TextStyle(fontSize: 9, color: Color(0xFF94A3B8))),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+        ),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 9, color: Color(0xFF94A3B8)),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
   }

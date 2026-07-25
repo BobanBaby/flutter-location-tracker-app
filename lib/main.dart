@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -47,6 +48,22 @@ class LocationTrackingApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0B0F19),
         fontFamily: 'Roboto',
       ),
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final double screenWidth = mediaQuery.size.width;
+        // Calculate fluid adaptive scale relative to 390px baseline width
+        final double adaptiveScale = clampDouble(screenWidth / 390.0, 0.85, 1.25);
+
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            textScaler: mediaQuery.textScaler.clamp(
+              minScaleFactor: 0.85 * adaptiveScale,
+              maxScaleFactor: 1.25 * adaptiveScale,
+            ),
+          ),
+          child: child!,
+        );
+      },
       home: const SplashScreen(),
     );
   }
