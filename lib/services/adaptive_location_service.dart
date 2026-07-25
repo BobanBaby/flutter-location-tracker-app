@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geolocator_android/geolocator_android.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/gps_log.dart';
@@ -84,8 +85,14 @@ class AdaptiveLocationService {
       locationSettings = AndroidSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 0,
-        forceLocationManager: false,
+        forceLocationManager: true,
         intervalDuration: const Duration(seconds: 3),
+        foregroundNotificationConfig: ForegroundNotificationConfig(
+          notificationTitle: "Location Tracking Active",
+          notificationText: "Tracking journey location in background",
+          notificationIcon: AndroidResource(name: 'ic_notification'),
+          enableWakeLock: true,
+        ),
       );
     } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
       locationSettings = AppleSettings(
