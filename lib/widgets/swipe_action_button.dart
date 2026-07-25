@@ -37,7 +37,7 @@ class _SwipeActionButtonState extends State<SwipeActionButton>
     final bool active = widget.isTracking;
 
     final Color trackBg = active ? const Color(0xFF450A0A) : const Color(0xFF0F172A);
-    final Color trackBorder = active ? const Color(0xFFEF4444).withOpacity(0.5) : const Color(0xFF38BDF8).withOpacity(0.4);
+    final Color trackBorder = active ? const Color(0xFFEF4444).withValues(alpha: 0.5) : const Color(0xFF38BDF8).withValues(alpha: 0.4);
     final Color thumbColor = active ? const Color(0xFFEF4444) : const Color(0xFF38BDF8);
     final Color thumbIconColor = active ? Colors.white : const Color(0xFF0F172A);
     final IconData thumbIcon = active ? Icons.stop_rounded : Icons.play_arrow_rounded;
@@ -58,7 +58,7 @@ class _SwipeActionButtonState extends State<SwipeActionButton>
             border: Border.all(color: trackBorder, width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: thumbColor.withOpacity(0.2),
+                color: thumbColor.withValues(alpha: 0.2),
                 blurRadius: 12,
                 spreadRadius: 1,
               ),
@@ -157,7 +157,7 @@ class _SwipeActionButtonState extends State<SwipeActionButton>
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: thumbColor.withOpacity(0.5),
+                          color: thumbColor.withValues(alpha: 0.5),
                           blurRadius: 8,
                           spreadRadius: 2,
                         ),

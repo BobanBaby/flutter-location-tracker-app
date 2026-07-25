@@ -33,7 +33,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
             transitionDuration: const Duration(milliseconds: 400),
-            pageBuilder: (_, animation, __) => FadeTransition(
+            pageBuilder: (context, animation, secondaryAnimation) => FadeTransition(
               opacity: animation,
               child: const DashboardScreen(),
             ),
@@ -52,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0F19), // Deep minimal dark background
+      backgroundColor: const Color(0xFF0F172A),
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
@@ -61,16 +61,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             children: [
               // Minimal App Logo Container
               Container(
-                width: 84,
-                height: 84,
+                width: 88,
+                height: 88,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF334155), width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
+                      color: const Color(0xFF38BDF8).withValues(alpha: 0.3),
+                      blurRadius: 24,
+                      spreadRadius: 2,
                     ),
                   ],
                 ),
@@ -79,7 +78,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   child: Image.asset(
                     'assets/images/app_logo.jpg',
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (context, error, stackTrace) => Container(
                       color: const Color(0xFF1E293B),
                       child: const Icon(Icons.location_on_outlined, color: Color(0xFF38BDF8), size: 40),
                     ),

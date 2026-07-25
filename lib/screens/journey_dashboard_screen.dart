@@ -534,7 +534,7 @@ class JourneyDashboardScreen extends StatelessWidget {
                 child: ListView.separated(
                   physics: const BouncingScrollPhysics(),
                   itemCount: segments.length,
-                  separatorBuilder: (_, __) => const Divider(color: Color(0xFF334155), height: 1),
+                  separatorBuilder: (context, index) => const Divider(color: Color(0xFF334155), height: 1),
                   itemBuilder: (context, index) {
                     final seg = segments[index];
                     Color caseColor = const Color(0xFF38BDF8);

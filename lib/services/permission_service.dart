@@ -23,6 +23,7 @@ class PermissionService {
     if (!locStatus.isGranted) {
       locStatus = await Permission.location.request();
       if (locStatus.isPermanentlyDenied) {
+        if (!context.mounted) return false;
         _showOpenSettingsDialog(context, 'Location Permission', 'High-accuracy location is required for GPS tracking.');
         return false;
       }
@@ -43,6 +44,7 @@ class PermissionService {
     // 4. Background Location ("Allow all the time")
     var bgLocStatus = await Permission.locationAlways.status;
     if (!bgLocStatus.isGranted) {
+      if (!context.mounted) return false;
       // Explain to user why "Allow all the time" is required before system dialog
       final proceed = await showDialog<bool>(
         context: context,
