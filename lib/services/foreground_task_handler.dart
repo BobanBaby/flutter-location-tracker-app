@@ -24,9 +24,9 @@ class MyForegroundTaskHandler extends TaskHandler {
       print('Error starting background tracking: $e\n$stack');
     }
 
-    // Requirement 5: Every 5 minutes (300 seconds), upload pending GPS records
-    _uploadTimer = Timer.periodic(const Duration(minutes: 5), (timer) async {
-      print('5-Minute Periodic Upload Triggered');
+    // Adaptive Fleet Sync: Every 3 minutes (180 seconds), upload pending GPS records to Cloud Firestore
+    _uploadTimer = Timer.periodic(const Duration(minutes: 3), (timer) async {
+      print('3-Minute Adaptive Fleet Upload Triggered');
       try {
         await FirebaseUploadService.instance.processUploadQueue();
       } catch (e) {

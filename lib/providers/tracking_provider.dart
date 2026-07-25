@@ -131,6 +131,10 @@ class TrackingProvider extends ChangeNotifier {
       result = await runJourneyAnalysis();
     }
 
+    if (result != null) {
+      await FirebaseUploadService.instance.uploadJourneyReport(result);
+    }
+
     _isTracking = false;
     _isAnalyzing = false;
     notifyListeners();
