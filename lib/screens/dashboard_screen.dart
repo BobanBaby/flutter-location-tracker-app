@@ -5,6 +5,7 @@ import '../providers/tracking_provider.dart';
 import '../services/activity_recognition_service.dart';
 import '../services/permission_service.dart';
 import '../models/gps_log.dart';
+import '../widgets/swipe_action_button.dart';
 
 import 'journey_history_screen.dart';
 
@@ -340,80 +341,56 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildMainActionButton(BuildContext context, TrackingProvider tracking) {
     final active = tracking.isTracking;
 
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: active ? const Color(0xFFDC2626) : const Color(0xFF059669),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          elevation: 4,
-          shadowColor: active
-              ? const Color(0xFFDC2626).withOpacity(0.4)
-              : const Color(0xFF059669).withOpacity(0.4),
-        ),
-        onPressed: tracking.isSyncing
-            ? null
-            : () async {
-                if (active) {
-                  await tracking.stopTracking();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Session ended. Journey Analysis complete!'),
-                        backgroundColor: Color(0xFF10B981),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const JourneyHistoryScreen()),
-                    );
-                  }
-                } else {
-                  // Ensure User details exist in persistent storage before starting tracking
-                  if (!tracking.hasValidUserProfile) {
-                    await _showEditProfileDialog(context, tracking, isRequiredToStart: true);
-                    if (!tracking.hasValidUserProfile) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('User details (Name & Employee ID) are required to start tracking.'),
-                            backgroundColor: Colors.amber,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                      return;
-                    }
-                  }
+    return SwipeActionButton(
+      isTracking: active,
+      isLoading: tracking.isSyncing || tracking.isAnalyzing,
+      onSwipeComplete: () async {
+        if (active) {
+          await tracking.stopTracking();
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Session ended. Journey Analysis complete!'),
+                backgroundColor: Color(0xFF10B981),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const JourneyHistoryScreen()),
+            );
+          }
+        } else {
+          // Ensure User details exist in persistent storage before starting tracking
+          if (!tracking.hasValidUserProfile) {
+            await _showEditProfileDialog(context, tracking, isRequiredToStart: true);
+            if (!tracking.hasValidUserProfile) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('User details (Name & Employee ID) are required to start tracking.'),
+                    backgroundColor: Colors.amber,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+              return;
+            }
+          }
 
-                  await PermissionService.instance.requestAllPermissions(context);
-                  final started = await tracking.startTracking();
-                  if (!started && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Failed to start tracking. Check location permissions.'),
-                        backgroundColor: Colors.redAccent,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                }
-              },
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(active ? Icons.stop_rounded : Icons.play_arrow_rounded, size: 24),
-            const SizedBox(width: 10),
-            Text(
-              active ? 'STOP TRACKING SESSION' : 'START TRACKING SESSION',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-            ),
-          ],
-        ),
-      ),
+          await PermissionService.instance.requestAllPermissions(context);
+          final started = await tracking.startTracking();
+          if (!started && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to start tracking. Check location permissions.'),
+                backgroundColor: Colors.redAccent,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      },
     );
   }
 
