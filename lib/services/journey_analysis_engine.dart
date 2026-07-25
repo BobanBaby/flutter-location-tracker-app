@@ -99,10 +99,12 @@ class JourneyAnalysisEngine {
       ];
       String statusNotes = '';
 
-      // Only filter out tiny stationary GPS noise (< 10 meters while activity is Still and speed < 0.2 m/s)
-      final bool isStationaryJitter = straightDist < 10.0 &&
-          (p1.activity == 'Still' && p2.activity == 'Still') &&
-          (p1.speed < 0.2 && p2.speed < 0.2);
+      // Movement speed between 2 points in m/s
+      final double calculatedSpeedMps = timeGapSeconds > 0 ? straightDist / timeGapSeconds : 0.0;
+
+      // Smart Stationary Noise Filter:
+      // Sub-meter/micro GPS jitter (< 4.0 meters OR speed < 0.6 m/s / 2.1 km/h) is classified as Stationary/Idle
+      final bool isStationaryJitter = straightDist < 4.0 || calculatedSpeedMps < 0.6;
 
       if (timeGapSeconds <= 120) {
         // Case 1 – Normal Tracking
@@ -111,7 +113,7 @@ class JourneyAnalysisEngine {
           roadDist = 0;
           polyline = [];
           idleTimeSeconds += timeGapSeconds;
-          statusNotes = 'Stationary GPS noise (${straightDist.toStringAsFixed(1)}m jitter)';
+          statusNotes = 'Stationary GPS noise / Desk idle (${straightDist.toStringAsFixed(1)}m jitter)';
         } else {
           caseType = GapCaseType.normal;
           roadDist = straightDist;

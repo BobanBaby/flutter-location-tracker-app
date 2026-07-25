@@ -219,8 +219,12 @@ class AdaptiveLocationService {
       position.longitude,
     );
 
-    // Capture point if moved at least 5 meters or if 10 seconds have elapsed
-    if (distanceMeters >= 5.0 || elapsedSeconds >= 10) {
+    // Ignore stationary micro-jitter (< 4.0 meters) unless 3 minutes have elapsed for heartbeat logging
+    if (distanceMeters < 4.0 && elapsedSeconds < 180) {
+      return false;
+    }
+
+    if (distanceMeters >= 5.0 || elapsedSeconds >= 15) {
       return true;
     }
 
