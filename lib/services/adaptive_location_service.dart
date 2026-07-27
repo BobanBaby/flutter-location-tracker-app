@@ -215,6 +215,12 @@ class AdaptiveLocationService {
   }
 
   bool _shouldCapturePoint(DateTime now, Position position, UserActivity activity) {
+    // 1. Filter Poor GPS Readings (Highest Priority: Accuracy > 100m dropped)
+    if (position.accuracy > 100.0) {
+      print('AdaptiveLocationService: Dropped low-confidence GPS fix (Accuracy: ${position.accuracy.toStringAsFixed(1)}m > 100m)');
+      return false;
+    }
+
     if (_lastCapturedTime == null || _lastCapturedPosition == null) {
       return true;
     }
@@ -227,23 +233,30 @@ class AdaptiveLocationService {
       position.longitude,
     );
 
-    // Ignore stationary micro-jitter (< 4.0 meters) unless 3 minutes have elapsed for heartbeat logging
-    if (distanceMeters < 4.0 && elapsedSeconds < 180) {
-      return false;
-    }
-
-    if (distanceMeters >= 5.0 || elapsedSeconds >= 15) {
+    // 2. Heading / Bearing Shift Filter (> 30° bearing shift captures curve turn immediately)
+    double bearingDiff = (position.heading - _lastCapturedPosition!.heading).abs();
+    if (bearingDiff > 180) bearingDiff = 360 - bearingDiff;
+    if (bearingDiff >= 30.0 && distanceMeters >= 10.0) {
       return true;
     }
 
+    // 3. Adaptive GPS Frequency by Activity State
     switch (activity) {
       case UserActivity.driving:
-        return elapsedSeconds >= 15 || distanceMeters >= 20;
+        // Driving Mode: Capture every 30 seconds OR if moved 50+ meters
+        return elapsedSeconds >= 30 || distanceMeters >= 50.0;
+
       case UserActivity.walking:
-        return elapsedSeconds >= 10 || distanceMeters >= 5;
+        // Walking Mode: Capture every 60 seconds OR if moved 20+ meters
+        return elapsedSeconds >= 60 || distanceMeters >= 20.0;
+
       case UserActivity.still:
       case UserActivity.unknown:
-        return elapsedSeconds >= 30;
+        // Desk / Still Mode: Ignore micro-jitter (< 4m) unless 5-min heartbeat interval is reached
+        if (distanceMeters < 4.0 && elapsedSeconds < 300) {
+          return false;
+        }
+        return elapsedSeconds >= 300 || distanceMeters >= 15.0;
     }
   }
 

@@ -87,6 +87,40 @@ class JourneySegment {
   }
 }
 
+class JourneyStop {
+  final LatLngPoint location;
+  final String startTime;
+  final String endTime;
+  final int durationSeconds;
+  final String label;
+
+  JourneyStop({
+    required this.location,
+    required this.startTime,
+    required this.endTime,
+    required this.durationSeconds,
+    required this.label,
+  });
+
+  Map<String, dynamic> toMap() => {
+        'location': location.toMap(),
+        'startTime': startTime,
+        'endTime': endTime,
+        'durationSeconds': durationSeconds,
+        'label': label,
+      };
+
+  factory JourneyStop.fromMap(Map<String, dynamic> map) {
+    return JourneyStop(
+      location: LatLngPoint.fromMap(Map<String, dynamic>.from(map['location'])),
+      startTime: map['startTime'] as String,
+      endTime: map['endTime'] as String,
+      durationSeconds: map['durationSeconds'] as int,
+      label: map['label'] as String,
+    );
+  }
+}
+
 class JourneyAnalysisResult {
   final String journeyId;
   final String userId;
@@ -107,6 +141,11 @@ class JourneyAnalysisResult {
   final double averageSpeedKmH;
   final double maxSpeedKmH;
   final double gpsQualityScore; // 0 - 100%
+  final double travelConfidencePercentage; // e.g. 94.5%
+  final String gpsQualityLabel; // 'Excellent', 'Good', 'Fair'
+  final int correctedSegmentsCount;
+  final int driftPointsRemovedCount;
+  final List<JourneyStop> stopsList;
   final List<JourneySegment> segments;
 
   JourneyAnalysisResult({
@@ -129,6 +168,11 @@ class JourneyAnalysisResult {
     required this.averageSpeedKmH,
     required this.maxSpeedKmH,
     required this.gpsQualityScore,
+    this.travelConfidencePercentage = 95.0,
+    this.gpsQualityLabel = 'Excellent',
+    this.correctedSegmentsCount = 0,
+    this.driftPointsRemovedCount = 0,
+    this.stopsList = const [],
     required this.segments,
   });
 
@@ -153,6 +197,11 @@ class JourneyAnalysisResult {
       'averageSpeedKmH': averageSpeedKmH,
       'maxSpeedKmH': maxSpeedKmH,
       'gpsQualityScore': gpsQualityScore,
+      'travelConfidencePercentage': travelConfidencePercentage,
+      'gpsQualityLabel': gpsQualityLabel,
+      'correctedSegmentsCount': correctedSegmentsCount,
+      'driftPointsRemovedCount': driftPointsRemovedCount,
+      'stopsList': stopsList.map((s) => s.toMap()).toList(),
       'segments': segments.map((s) => s.toMap()).toList(),
     };
   }
@@ -178,6 +227,15 @@ class JourneyAnalysisResult {
       averageSpeedKmH: (map['averageSpeedKmH'] as num).toDouble(),
       maxSpeedKmH: (map['maxSpeedKmH'] as num).toDouble(),
       gpsQualityScore: (map['gpsQualityScore'] as num).toDouble(),
+      travelConfidencePercentage: ((map['travelConfidencePercentage'] ?? 95.0) as num).toDouble(),
+      gpsQualityLabel: (map['gpsQualityLabel'] as String?) ?? 'Excellent',
+      correctedSegmentsCount: (map['correctedSegmentsCount'] as int?) ?? 0,
+      driftPointsRemovedCount: (map['driftPointsRemovedCount'] as int?) ?? 0,
+      stopsList: map['stopsList'] != null
+          ? (map['stopsList'] as List)
+              .map((e) => JourneyStop.fromMap(Map<String, dynamic>.from(e)))
+              .toList()
+          : [],
       segments: (map['segments'] as List)
           .map((e) => JourneySegment.fromMap(Map<String, dynamic>.from(e)))
           .toList(),

@@ -58,8 +58,67 @@ class GpsLog {
       'battery_level': batteryLevel,
       'provider': provider,
       'upload_status': uploadStatus,
+      'confidence_score': confidenceScore,
+      'accuracy_tier': accuracyTier,
     };
   }
+
+  /// Calculate Weighted Confidence Score (0–100)
+  static int computeConfidenceScore({
+    required double accuracy,
+    required double speed,
+    required String activity,
+    required double bearing,
+  }) {
+    int score = 0;
+
+    // 1. Accuracy Score (Max 40 points)
+    if (accuracy <= 10.0) {
+      score += 40;
+    } else if (accuracy <= 20.0) {
+      score += 30;
+    } else if (accuracy <= 50.0) {
+      score += 15;
+    } else if (accuracy <= 100.0) {
+      score += 5;
+    }
+
+    // 2. Speed Available (+10 points)
+    if (speed >= 0) {
+      score += 10;
+    }
+
+    // 3. Activity Recognition Available (+20 points)
+    if (activity.isNotEmpty && activity != 'Unknown') {
+      score += 20;
+    }
+
+    // 4. Heading / Bearing Available (+10 points)
+    if (bearing >= 0) {
+      score += 10;
+    }
+
+    // 5. Continuous Stream Signal (+20 points)
+    score += 20;
+
+    return score.clamp(0, 100);
+  }
+
+  /// Accuracy Tier Label (Excellent <= 15m, Good 15-30m, Acceptable 30-50m, Low > 50m)
+  String get accuracyTier {
+    if (accuracy <= 15.0) return 'Excellent';
+    if (accuracy <= 30.0) return 'Good';
+    if (accuracy <= 50.0) return 'Acceptable';
+    return 'Low Confidence';
+  }
+
+  /// Evaluated Confidence Score (0–100)
+  int get confidenceScore => computeConfidenceScore(
+        accuracy: accuracy,
+        speed: speed,
+        activity: activity,
+        bearing: bearing,
+      );
 
   factory GpsLog.fromMap(Map<String, dynamic> map) {
     return GpsLog(

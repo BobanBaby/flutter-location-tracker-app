@@ -204,21 +204,21 @@ class JourneyDashboardScreen extends StatelessWidget {
           children: [
             Expanded(
               child: _buildKpiCard(
-                'Stops / Missing Gaps',
-                '${result.numberOfStops} Stops',
-                'Gaps: ${result.numberOfMissingGaps} (${result.numberOfCorrectedGaps} Corrected)',
-                Icons.pause_circle_outline_rounded,
-                const Color(0xFFA855F7),
+                'Travel Confidence',
+                '${result.travelConfidencePercentage.toStringAsFixed(0)}%',
+                'Quality: ${result.gpsQualityLabel} (${result.driftPointsRemovedCount} Drifts Filtered)',
+                Icons.verified_user_rounded,
+                const Color(0xFF10B981),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: _buildKpiCard(
-                'Average Speed',
-                '${result.averageSpeedKmH.toStringAsFixed(1)} km/h',
-                'Max: ${result.maxSpeedKmH.toStringAsFixed(1)} km/h',
-                Icons.speed_rounded,
-                const Color(0xFF64748B),
+                'Stops & Visits',
+                '${result.numberOfStops} Stops',
+                'Gaps: ${result.numberOfMissingGaps} (${result.numberOfCorrectedGaps} Corrected)',
+                Icons.pause_circle_outline_rounded,
+                const Color(0xFFA855F7),
               ),
             ),
           ],

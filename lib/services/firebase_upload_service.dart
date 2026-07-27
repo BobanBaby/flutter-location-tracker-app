@@ -89,7 +89,7 @@ class FirebaseUploadService {
 
               final payload = updatedLog.toMap();
 
-              // 1. Primary Hierarchical Path: /users/{userId}/journeys/{journeyId}/gps_logs/{docId}
+              // Primary Hierarchical Path: /users/{userId}/journeys/{journeyId}/gps_logs/{docId}
               final jId = log.journeyId.isNotEmpty ? log.journeyId : 'JRN_DEFAULT';
               final subDocRef = FirebaseFirestore.instance
                   .collection('users')
@@ -99,10 +99,6 @@ class FirebaseUploadService {
                   .collection('gps_logs')
                   .doc();
               batch.set(subDocRef, payload);
-
-              // 2. Flat Collection Path (for backwards compatibility): /sales_gps_logs/{docId}
-              final flatDocRef = FirebaseFirestore.instance.collection('sales_gps_logs').doc();
-              batch.set(flatDocRef, payload);
             }
 
             await batch.commit().timeout(

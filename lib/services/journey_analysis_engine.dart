@@ -22,7 +22,11 @@ class JourneyAnalysisEngine {
   static double _toRadians(double degree) => degree * (pi / 180.0);
 
   /// Analyze raw GPS points and return a comprehensive JourneyAnalysisResult
-  static Future<JourneyAnalysisResult> analyzeJourney(List<GpsLog> rawLogs, {String? targetJourneyId}) async {
+  static Future<JourneyAnalysisResult> analyzeJourney(
+    List<GpsLog> rawLogs, {
+    String? targetJourneyId,
+    bool ignoreLowConfidence = true,
+  }) async {
     final String effectiveJourneyId = targetJourneyId ??
         (rawLogs.isNotEmpty && rawLogs.first.journeyId.isNotEmpty
             ? rawLogs.first.journeyId
@@ -64,6 +68,40 @@ class JourneyAnalysisEngine {
     final endDt = DateTime.tryParse(endTime) ?? DateTime.now();
     final int workingHoursSeconds = endDt.difference(startDt).inSeconds.clamp(0, 864000);
 
+    // PASS 1: Pre-Filtering & GPS Stabilization (Cold Start Warm-Up Lock Filter)
+    // ---------------------------------------------------------------------------
+    final List<GpsLog> validPoints = [];
+    int initialFilteredCount = 0;
+
+    for (int i = 0; i < sorted.length; i++) {
+      final p = sorted[i];
+
+      // 1. Drop gross invalid points (Accuracy > 100m)
+      if (p.accuracy > 100.0) {
+        initialFilteredCount++;
+        continue;
+      }
+
+      // 2. Rule 1: GPS Stabilization (Warm-Up Lock Filter)
+      // If point[i] has Accuracy > 50m AND next point[i+1] within 30s has Accuracy < 20m,
+      // treat point[i] as a GPS warm-up fix and discard it.
+      if (i < sorted.length - 1) {
+        final nextP = sorted[i + 1];
+        final tCurr = DateTime.tryParse(p.timestamp) ?? startDt;
+        final tNext = DateTime.tryParse(nextP.timestamp) ?? endDt;
+        final gapSec = tNext.difference(tCurr).inSeconds.abs();
+
+        if (p.accuracy > 50.0 && nextP.accuracy < 20.0 && gapSec <= 30) {
+          initialFilteredCount++;
+          continue;
+        }
+      }
+
+      validPoints.add(p);
+    }
+
+    final List<GpsLog> pointsToProcess = validPoints.isNotEmpty ? validPoints : sorted;
+
     double totalGpsDistanceMeters = 0;
     double correctedRoadDistanceMeters = 0;
     int travelTimeSeconds = 0;
@@ -71,13 +109,18 @@ class JourneyAnalysisEngine {
     int numberOfStops = 0;
     int numberOfMissingGaps = 0;
     int numberOfCorrectedGaps = 0;
+    int driftPointsRemovedCount = initialFilteredCount;
     double maxSpeedMps = 0;
+    double accumulatedConfidenceSum = 0.0;
 
     final List<JourneySegment> segments = [];
+    final List<JourneyStop> stopsList = [];
 
-    for (int i = 0; i < sorted.length - 1; i++) {
-      final p1 = sorted[i];
-      final p2 = sorted[i + 1];
+    // PASS 2 & 3: Gap Detection, Stationary Radius Clustering & Gated Routes API
+    // ---------------------------------------------------------------------------
+    for (int i = 0; i < pointsToProcess.length - 1; i++) {
+      final p1 = pointsToProcess[i];
+      final p2 = pointsToProcess[i + 1];
 
       if (p1.speed > maxSpeedMps) maxSpeedMps = p1.speed;
       if (p2.speed > maxSpeedMps) maxSpeedMps = p2.speed;
@@ -90,6 +133,7 @@ class JourneyAnalysisEngine {
         p1.latitude, p1.longitude, p2.latitude, p2.longitude,
       );
       totalGpsDistanceMeters += straightDist;
+      accumulatedConfidenceSum += p1.confidenceScore;
 
       GapCaseType caseType;
       double roadDist = straightDist;
@@ -99,14 +143,40 @@ class JourneyAnalysisEngine {
       ];
       String statusNotes = '';
 
-      // Movement speed between 2 points in m/s
       final double calculatedSpeedMps = timeGapSeconds > 0 ? straightDist / timeGapSeconds : 0.0;
 
-      // Smart Stationary Noise Filter:
-      // Sub-meter/micro GPS jitter (< 4.0 meters OR speed < 0.6 m/s / 2.1 km/h) is classified as Stationary/Idle
+      // Accuracy Tier Low-Confidence Filter (Accuracy > 50m ignored when enabled)
+      final bool isLowConfidenceReading = ignoreLowConfidence && (p1.accuracy > 50.0 || p2.accuracy > 50.0);
+
+      // Stationary Radius Clustering (< 4.0 meters OR speed < 0.6 m/s / 2.1 km/h)
       final bool isStationaryJitter = straightDist < 4.0 || calculatedSpeedMps < 0.6;
 
-      if (timeGapSeconds <= 120) {
+      if (isStationaryJitter || isLowConfidenceReading) {
+        driftPointsRemovedCount++;
+      }
+
+      // Stop & Visit Detection Engine (Activity == Still AND Speed < 1 km/h AND Stayed > 5 minutes)
+      final bool isStillActivity = p1.activity == 'Still' && p2.activity == 'Still';
+      final bool isLowSpeedStop = (p1.speed * 3.6) < 1.0 && (p2.speed * 3.6) < 1.0;
+      if (timeGapSeconds >= 300 && (isStillActivity || isLowSpeedStop)) {
+        numberOfStops++;
+        final String stopLabel = timeGapSeconds >= 1800 ? 'Lunch Break / Prolonged Visit' : 'Client Visit / Office Stop';
+        stopsList.add(JourneyStop(
+          location: LatLngPoint(p1.latitude, p1.longitude),
+          startTime: p1.timestamp,
+          endTime: p2.timestamp,
+          durationSeconds: timeGapSeconds,
+          label: stopLabel,
+        ));
+      }
+
+      if (isLowConfidenceReading) {
+        caseType = GapCaseType.gpsDrift;
+        roadDist = 0;
+        polyline = [];
+        idleTimeSeconds += timeGapSeconds;
+        statusNotes = 'Low Confidence GPS fix ignored (Accuracy > 50m: ${max(p1.accuracy, p2.accuracy).toStringAsFixed(1)}m)';
+      } else if (timeGapSeconds <= 120) {
         // Case 1 – Normal Tracking
         if (isStationaryJitter) {
           caseType = GapCaseType.stationary;
@@ -135,10 +205,9 @@ class JourneyAnalysisEngine {
           roadDist = 0;
           polyline = [];
           idleTimeSeconds += timeGapSeconds;
-          numberOfStops++;
           statusNotes = 'Stationary gap (${(timeGapSeconds / 60).toStringAsFixed(1)} min stop, shop/lunch/drift)';
-        } else if (straightDist > 300) {
-          // Case 3 – Possible Missing Travel (Movement > 300 meters)
+        } else if (straightDist > 300 && (p1.activity == 'Driving' || p2.activity == 'Driving')) {
+          // Case 3 – Gated Google Routes API Execution (Gap > 2m AND Movement > 300m AND Activity = Driving)
           final p1Point = LatLngPoint(p1.latitude, p1.longitude);
           final p2Point = LatLngPoint(p2.latitude, p2.longitude);
 
@@ -151,7 +220,6 @@ class JourneyAnalysisEngine {
               roadDist = 0;
               polyline = [];
               idleTimeSeconds += timeGapSeconds;
-              numberOfStops++;
               statusNotes = 'GPS Drift detected! (GPS=${straightDist.toStringAsFixed(0)}m, Route=${routeResult.distanceMeters.toStringAsFixed(0)}m)';
             } else {
               // Valid Gap Corrected via Routes API
@@ -208,11 +276,22 @@ class JourneyAnalysisEngine {
         : 0.0;
     final double maxSpeedKmH = maxSpeedMps * 3.6;
 
+    // Calculate Travel Confidence % and GPS Quality Label
+    final double avgConfidenceScore = sorted.isNotEmpty ? accumulatedConfidenceSum / sorted.length : 100.0;
     final double qualityScore = segments.isEmpty
         ? 100.0
         : ((segments.where((s) => s.caseType == GapCaseType.normal || s.caseType == GapCaseType.gapCorrected).length) /
                 segments.length) *
             100.0;
+
+    String qualityLabel = 'Excellent';
+    if (avgConfidenceScore < 60) {
+      qualityLabel = 'Low Confidence';
+    } else if (avgConfidenceScore < 80) {
+      qualityLabel = 'Fair';
+    } else if (avgConfidenceScore < 90) {
+      qualityLabel = 'Good';
+    }
 
     final profile = sorted.isNotEmpty
         ? UserDeviceProfile(
@@ -245,6 +324,11 @@ class JourneyAnalysisEngine {
       averageSpeedKmH: avgSpeedKmH,
       maxSpeedKmH: maxSpeedKmH,
       gpsQualityScore: qualityScore,
+      travelConfidencePercentage: avgConfidenceScore,
+      gpsQualityLabel: qualityLabel,
+      correctedSegmentsCount: numberOfCorrectedGaps,
+      driftPointsRemovedCount: driftPointsRemovedCount,
+      stopsList: stopsList,
       segments: segments,
     );
   }
