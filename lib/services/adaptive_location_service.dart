@@ -243,20 +243,17 @@ class AdaptiveLocationService {
     // 3. Adaptive GPS Frequency by Activity State
     switch (activity) {
       case UserActivity.driving:
-        // Driving Mode: Capture every 30 seconds OR if moved 50+ meters
-        return elapsedSeconds >= 30 || distanceMeters >= 50.0;
+        // Driving Mode: Capture every 15 seconds OR if moved 25+ meters
+        return elapsedSeconds >= 15 || distanceMeters >= 25.0;
 
       case UserActivity.walking:
-        // Walking Mode: Capture every 60 seconds OR if moved 20+ meters
-        return elapsedSeconds >= 60 || distanceMeters >= 20.0;
+        // Walking Mode: Capture every 10 seconds OR if moved 5+ meters
+        return elapsedSeconds >= 10 || distanceMeters >= 5.0;
 
       case UserActivity.still:
       case UserActivity.unknown:
-        // Desk / Still Mode: Ignore micro-jitter (< 4m) unless 5-min heartbeat interval is reached
-        if (distanceMeters < 4.0 && elapsedSeconds < 300) {
-          return false;
-        }
-        return elapsedSeconds >= 300 || distanceMeters >= 15.0;
+        // Desk / Still / Testing Mode: Capture heartbeat every 15 seconds OR if moved 5+ meters
+        return elapsedSeconds >= 15 || distanceMeters >= 5.0;
     }
   }
 

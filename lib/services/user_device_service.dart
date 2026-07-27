@@ -55,13 +55,13 @@ class UserDeviceService {
     }
 
     final prefs = await SharedPreferences.getInstance();
-    final savedUserId = prefs.getString('user_id') ?? '';
-    final savedUserName = prefs.getString('user_name') ?? '';
+    final savedUserId = (prefs.getString('user_id') ?? '').trim();
+    final savedUserName = (prefs.getString('user_name') ?? '').trim();
     final savedUserEmail = prefs.getString('user_email') ?? '';
 
     _cachedProfile = UserDeviceProfile(
-      userId: savedUserId,
-      userName: savedUserName,
+      userId: savedUserId.isNotEmpty ? savedUserId : 'EMP_101',
+      userName: savedUserName.isNotEmpty ? savedUserName : 'Boban',
       userEmail: savedUserEmail,
       deviceId: deviceId,
       deviceModel: deviceModel,

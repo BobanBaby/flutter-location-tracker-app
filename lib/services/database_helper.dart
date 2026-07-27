@@ -22,7 +22,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -47,7 +47,9 @@ class DatabaseHelper {
         activity TEXT NOT NULL,
         battery_level INTEGER NOT NULL,
         provider TEXT NOT NULL,
-        upload_status TEXT NOT NULL
+        upload_status TEXT NOT NULL,
+        confidence_score INTEGER NOT NULL DEFAULT 100,
+        accuracy_tier TEXT NOT NULL DEFAULT 'Excellent'
       )
     ''');
 
@@ -110,6 +112,14 @@ class DatabaseHelper {
       } catch (_) {}
       try {
         await db.execute("ALTER TABLE location_logs ADD COLUMN device_model TEXT NOT NULL DEFAULT ''");
+      } catch (_) {}
+    }
+    if (oldVersion < 6) {
+      try {
+        await db.execute("ALTER TABLE location_logs ADD COLUMN confidence_score INTEGER NOT NULL DEFAULT 100");
+      } catch (_) {}
+      try {
+        await db.execute("ALTER TABLE location_logs ADD COLUMN accuracy_tier TEXT NOT NULL DEFAULT 'Excellent'");
       } catch (_) {}
     }
   }

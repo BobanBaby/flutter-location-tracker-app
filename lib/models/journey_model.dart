@@ -93,6 +93,10 @@ class JourneyStop {
   final String endTime;
   final int durationSeconds;
   final String label;
+  final String stopType; // 'ShopVisit', 'Break', 'AutoStop'
+  final String clientName;
+  final bool isAutoTriggered;
+  final String note;
 
   JourneyStop({
     required this.location,
@@ -100,6 +104,10 @@ class JourneyStop {
     required this.endTime,
     required this.durationSeconds,
     required this.label,
+    this.stopType = 'AutoStop',
+    this.clientName = '',
+    this.isAutoTriggered = false,
+    this.note = '',
   });
 
   Map<String, dynamic> toMap() => {
@@ -108,6 +116,10 @@ class JourneyStop {
         'endTime': endTime,
         'durationSeconds': durationSeconds,
         'label': label,
+        'stopType': stopType,
+        'clientName': clientName,
+        'isAutoTriggered': isAutoTriggered,
+        'note': note,
       };
 
   factory JourneyStop.fromMap(Map<String, dynamic> map) {
@@ -117,6 +129,10 @@ class JourneyStop {
       endTime: map['endTime'] as String,
       durationSeconds: map['durationSeconds'] as int,
       label: map['label'] as String,
+      stopType: (map['stopType'] as String?) ?? 'AutoStop',
+      clientName: (map['clientName'] as String?) ?? '',
+      isAutoTriggered: (map['isAutoTriggered'] as bool?) ?? false,
+      note: (map['note'] as String?) ?? '',
     );
   }
 }
